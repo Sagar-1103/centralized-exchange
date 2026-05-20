@@ -7,3 +7,11 @@ export const AsyncHandler = (fn:any) => async(req:Request, res:Response, next:Ne
         return res.status(500).json({success:false,error});
     }    
 }
+
+export const getUserId = (req:Request,res:Response) => {
+    const userId = req.userId;
+    if (!userId) {
+        return res.status(409).json({success:false,message:"Invalid Token"});
+    }
+    return userId;
+}
