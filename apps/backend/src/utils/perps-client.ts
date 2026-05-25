@@ -29,7 +29,10 @@ export const sendToEngine = async(type:EngineType,payload:Record<string,unknown>
         payload,
     };
 
-    await publisher.lPush(env.perpsIncomingQueue,JSON.stringify(message));
+    await publisher.xAdd(env.perpsIncomingQueue,"*",{
+        data: JSON.stringify(message)
+    });
+
     return pendingResponse;
 }
 
@@ -38,10 +41,20 @@ export const listenForEngineResponses = async () => {
     
     for(;;) {
         try {
-            const item = await subscriber.brPop(env.responseQueue,0);
-            if (!item) continue;
+            const item = await subscriber.xRead({
+                key: env.responseQueue,
+                id: "$"
+            },{
+                BLOCK: 0,
+                COUNT: 1
+            })
+            //@ts-ignore
+            console.log(JSON.parse(item?.[0]?.messages?.[0]?.message.data));
+            //@ts-ignore
+            const response = JSON.parse(item?.[0]?.messages?.[0]?.message.data) as EngineResponse;
+            
+            if (!response) continue;
 
-            const response = JSON.parse(item.element) as EngineResponse;
             resolveEngineResponse(response);
         } catch (error) {
             console.error("Invalid Response: ",error);
