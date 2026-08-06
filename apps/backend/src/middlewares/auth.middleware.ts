@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from "express"
 import jwt from "jsonwebtoken";
 import { env } from "../constants/env";
-import type { isExpression } from "typescript";
 
 declare global {
     namespace Express {
@@ -11,7 +10,7 @@ declare global {
     }
 }
 
-export const requireAuth = async(req: Request, res: Response, next: NextFunction) => {
+export const isAuthenticated = async(req: Request, res: Response, next: NextFunction) => {
     try {
         const token = req.headers["authorization"]?.split("Bearer ")?.[1];
 

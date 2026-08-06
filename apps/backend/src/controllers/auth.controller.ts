@@ -1,6 +1,14 @@
 import { type NextFunction, type Request, type Response } from "express";
 import { asyncHandler, sendValidationError } from "../utils/helpers";
 import { authSchema } from "../types/auth-schema";
+import { prisma } from "@repo/db/client";
+import jwt from "jsonwebtoken";
+import { env } from "../constants/env";
+import bcrypt from "bcryptjs";
+
+const generateToken = (userId: string) => {
+    return jwt.sign({id: userId},env.jwtSecret);
+}
 
 export const signup = asyncHandler(async(req:Request, res: Response) => {
     const parsedBody = authSchema.safeParse(req.body);
@@ -11,6 +19,38 @@ export const signup = asyncHandler(async(req:Request, res: Response) => {
     }
 
     const { username, password } = parsedBody.data;
+
+    const existingUser = await prisma.user.findUnique({
+        where:{
+            username,
+        },
+    });
+
+    if (existingUser) {
+        return res.status(401).json({
+            success: false,
+            error: "User already exists",
+        });
+    }
+
+    const hashedPassword = await bcrypt.hash(password,10); 
+
+    const user = await prisma.user.create({
+        data:{
+            username,
+            hashedPassword,
+        },
+    });
+
+    const token = generateToken(user.id);
+
+    //Todo: send the event to engine so that a balance of the user can be initialized
+
+    return res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        token
+    });
 });
 
 export const login = asyncHandler(async(req: Request, res: Response, next: NextFunction) => {
@@ -23,4 +63,32 @@ export const login = asyncHandler(async(req: Request, res: Response, next: NextF
 
     const { username, password } = parsedBody.data;
 
+    const user = await prisma.user.findUnique({
+        where:{
+            username,
+        },
+    });
+
+    if (!user) {
+        return res.status(404).json({
+            success: false,
+            error: "User doesnt exist",
+        });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password,user.hashedPassword);
+
+    if (!isPasswordValid) {
+        return res.status(401).json({
+            success: false,
+            error: "Invalid credentials",
+        });
+    }
+
+    const token = generateToken(user.id);
+    return res.status(201).json({
+        success: true,
+        message: "User logged in successfully",
+        token
+    });
 });

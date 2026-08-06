@@ -12,3 +12,10 @@ model User {
   username        String @unique
   hashedPassword  String
 }
+
+model Market {
+  id        Int     @id       @default(autoincrement())
+  name      String  @unique
+  symbol    String  @unique
+  decimals  Int
+}
