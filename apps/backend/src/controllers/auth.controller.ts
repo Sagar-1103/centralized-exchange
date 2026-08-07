@@ -5,6 +5,7 @@ import { prisma } from "@repo/db/client";
 import jwt from "jsonwebtoken";
 import { env } from "../constants/env";
 import bcrypt from "bcryptjs";
+import { EngineType, sendToEngine } from "../utils/spot-client";
 
 const generateToken = (userId: string) => {
     return jwt.sign({id: userId},env.jwtSecret);
@@ -44,12 +45,16 @@ export const signup = asyncHandler(async(req:Request, res: Response) => {
 
     const token = generateToken(user.id);
 
-    //Todo: send the event to engine so that a balance of the user can be initialized
+    const engineResponse = await sendToEngine(EngineType.ONBOARD,{
+        userId: user.id,
+        amount: 0,
+    });
 
     return res.status(201).json({
-        success: true,
-        message: "User registered successfully",
-        token
+        success: engineResponse.ok,
+        error: engineResponse.error,
+        message: engineResponse.ok ? "User registered successfully" : undefined,
+        token,
     });
 });
 

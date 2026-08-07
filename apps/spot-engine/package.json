@@ -1,0 +1,19 @@
+{
+  "name": "spot-engine",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "redis": "^6.2.0",
+    "@repo/shared": "workspace:*"
+  }
+}

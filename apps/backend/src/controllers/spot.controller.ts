@@ -1,8 +1,16 @@
 import type { Request, Response } from "express";
 import { asyncHandler, sendValidationError } from "../utils/helpers";
 import { onRampUsdSchema } from "../types/spot-schema";
+import { EngineType, sendToEngine } from "../utils/spot-client";
 
 export const onRampUsd = asyncHandler(async(req: Request, res: Response) => {
+    const userId = req.userId;
+    if (!userId) {
+        return res.status(403).json({
+            success: false,
+            error: "User id not defined",
+        });
+    }
     const parsedBody = onRampUsdSchema.safeParse(req.body);
 
     if (!parsedBody.success) {
@@ -12,11 +20,14 @@ export const onRampUsd = asyncHandler(async(req: Request, res: Response) => {
 
     const { amount } = parsedBody.data;
 
-    // send event to stream to be picked by the engine to add funds to the users balance
+    const engineResponse = await sendToEngine(EngineType.ONBOARD,{
+        userId,
+        amount,
+    })
 
     return res.status(201).json({
-        success: true,
-        message: "User balance updated",
-        balance: 0,
+        success: engineResponse.ok,
+        error: engineResponse.error,
+        data: engineResponse.data
     });
 });

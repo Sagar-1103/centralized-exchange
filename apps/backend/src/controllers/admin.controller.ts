@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { asyncHandler, sendValidationError } from "../utils/helpers";
 import { createMarketSchema } from "../types/admin-schema";
 import { prisma } from "@repo/db/client";
+import { EngineType, sendToEngine } from "../utils/spot-client";
 
 export const createMarket = asyncHandler(async(req: Request,res: Response) => {
     const parsedBody = createMarketSchema.safeParse(req.body);
@@ -13,34 +14,37 @@ export const createMarket = asyncHandler(async(req: Request,res: Response) => {
 
     const { name, symbol, decimals } = parsedBody.data;
 
-    const existingMarket = await prisma.market.findUnique({
-        where: {
-            name,
-            symbol,
-        },
-    });
+    // const existingMarket = await prisma.market.findUnique({
+    //     where: {
+    //         name,
+    //         symbol,
+    //     },
+    // });
     
-    if (existingMarket) {
-        return res.status(401).json({
-            success: false,
-            error: "Market already exists",
-        });
-    }
+    // if (existingMarket) {
+    //     return res.status(401).json({
+    //         success: false,
+    //         error: "Market already exists",
+    //     });
+    // }
 
-    await prisma.market.create({
-        data: {
-            name,
-            symbol,
-            decimals,
-        },
+    // await prisma.market.create({
+    //     data: {
+    //         name,
+    //         symbol,
+    //         decimals,
+    //     },
+    // });
+
+    const engineResponse = await sendToEngine(EngineType.CREATE_MARKET,{
+        name,
+        decimals,
+        symbol
     });
-
-    //Todo: send event in stream to be picked by the engine to initialize orderbook
 
     return res.status(201).json({
-        success: true,
-        message: "Market created successfully",
-        name,
-        symbol,
+        success: engineResponse.ok,
+        data: engineResponse.data,
+        error: engineResponse.error,
     });
 });
