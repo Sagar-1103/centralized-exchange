@@ -1,71 +1,16 @@
-import { createClient } from "redis";
+import { Recovery } from "@repo/shared";
 import { env } from "./constants/env";
+import { engineRequestHandlers } from "./handlers";
+import type { EngineRequest } from "./store/spot";
+import { connectRedis, readFromStream, sendResponse } from "./utils/redis";
 
-export const subscriber = createClient({url: env.redisUrl}).on("error",(error)=>{
-    console.log("Redis subscriber error: ",error);
-});
-
-export const publisher = createClient({url: env.redisUrl}).on("error",(error)=>{
-    console.log("Redis publisher error: ",error);
-});
-
-export enum EngineType {
-    ONBOARD,
-    CREATE_MARKET
-}
-
-export interface EngineRequest {
-    correlationId: string;
-    payload: Record<string,unknown>;
-    responseQueue: string;
-    type: EngineType;
-}
-
-export interface EngineResponse {
-    correlationId: string;
-    data?: unknown;
-    error?: string;
-    ok: boolean;
-}
-
-const captureSnapshot = async() => {
-
-}
-
-const restoreEventsFromStream = async() => {
-
-}
-
-const restoreFromLatestSnapshot = async() => {
-
-}
-
-const sendResponse = async(responseQueue: string, response: EngineResponse) => {
-    await publisher.xAdd(responseQueue,"*",{
-        data: JSON.stringify(response),
-    });
-}
-
-const handleEngineRequest = (message: EngineRequest) => {
-    console.log(message);
-    
-    return {
-        name:"sagar"
-    };
-}
 
 const startEngine = async() => {
     console.log(`Spot engine listening to ${env.spotIncomingQueue}`);
     for (;;) {
         let message: EngineRequest;
         try {
-            let item = await subscriber.xRead({
-                key: env.spotIncomingQueue,
-                id: "$",
-            },{
-                BLOCK: 0,
-                COUNT: 1,
-            });
+            let item = await readFromStream();
 
             if (!item) continue;
 
@@ -76,7 +21,8 @@ const startEngine = async() => {
         }
 
         try {
-            const data = handleEngineRequest(message);
+            const requestHandler = engineRequestHandlers[message.type];
+            const data = requestHandler(message);
             await sendResponse(message.responseQueue,{
                 correlationId: message.correlationId,
                 data,
@@ -95,11 +41,12 @@ const startEngine = async() => {
 }
 
 const main = async() => {
-    await Promise.all([subscriber.connect(),publisher.connect()]);
-    await restoreFromLatestSnapshot();
-    await restoreEventsFromStream();
+    await connectRedis();
+    const recovery = new Recovery(env.prefix,env.accessKeyId,env.secretAccessKey,env.bucket,env.region,env.endpoint);
+    await recovery.restoreFromLatestSnapshot();
+    await recovery.restoreEventsFromStream();
     await startEngine();
-    await captureSnapshot();
+    await recovery.captureSnapshot(env.backupIntervalMs);
 }
 
 main();
