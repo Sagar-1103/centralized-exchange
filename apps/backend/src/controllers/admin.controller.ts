@@ -14,32 +14,32 @@ export const createMarket = asyncHandler(async(req: Request,res: Response) => {
 
     const { name, symbol, decimals } = parsedBody.data;
 
-    // const existingMarket = await prisma.market.findUnique({
-    //     where: {
-    //         name,
-    //         symbol,
-    //     },
-    // });
+    const existingMarket = await prisma.market.findUnique({
+        where: {
+            name,
+            symbol: symbol.toUpperCase(),
+        },
+    });
     
-    // if (existingMarket) {
-    //     return res.status(401).json({
-    //         success: false,
-    //         error: "Market already exists",
-    //     });
-    // }
+    if (existingMarket) {
+        return res.status(401).json({
+            success: false,
+            error: "Market already exists",
+        });
+    }
 
-    // await prisma.market.create({
-    //     data: {
-    //         name,
-    //         symbol,
-    //         decimals,
-    //     },
-    // });
+    await prisma.market.create({
+        data: {
+            name,
+            symbol: symbol.toUpperCase(),
+            decimals,
+        },
+    });
 
     const engineResponse = await sendToEngine(EngineType.CREATE_MARKET,{
         name,
         decimals,
-        symbol
+        symbol: symbol.toUpperCase()
     });
 
     return res.status(201).json({

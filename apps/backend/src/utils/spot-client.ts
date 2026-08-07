@@ -4,7 +4,10 @@ import { publisher, subscriber } from "./redis";
 
 export enum EngineType {
     ONBOARD,
-    CREATE_MARKET
+    GET_BALANCE,
+    CREATE_MARKET,
+    GET_DEPTH,
+    CREATE_ORDER,
 }
 
 export enum OrderSide {

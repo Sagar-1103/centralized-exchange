@@ -13,3 +13,7 @@ export const optionalEnv = (key: string, defaultValue: string) => {
   const value = process.env[key];
   return value ?? defaultValue;
 }
+
+export const getScale = (decimals: number) => {
+  return 10n * BigInt(decimals);
+}
