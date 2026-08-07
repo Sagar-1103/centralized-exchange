@@ -1,14 +1,18 @@
 import type { EngineResponse } from "../utils/spot-client";
 
-interface PendingResponse {
-    resolve: (response: EngineResponse) => void;
+interface PendingResponse<T> {
+    resolve: (response: EngineResponse<T>) => void;
     reject: (error:Error) => void;
     timeout: ReturnType<typeof setTimeout>;
 }
 
-const pendingResponses = new Map<string,PendingResponse>();
+const createPendingMap = <T>() => {
+    return new Map<string,PendingResponse<T>>();
+}
 
-export const waitForEngineResponse = (correlationId: string, timeoutMs: number): Promise<EngineResponse> => {
+const pendingResponses = createPendingMap();
+
+export const waitForEngineResponse = <T>(correlationId: string, timeoutMs: number): Promise<EngineResponse<T>> => {
     return new Promise((resolve,reject)=>{
         const timeout = setTimeout(() => {
             pendingResponses.delete(correlationId);
@@ -16,14 +20,14 @@ export const waitForEngineResponse = (correlationId: string, timeoutMs: number):
         }, timeoutMs);
 
         pendingResponses.set(correlationId,{
-            resolve,
+            resolve: (res) => resolve(res as EngineResponse<T>),
             reject,
             timeout,
         });
     })
 }
 
-export const resolveEngineResponse = (response: EngineResponse) => {
+export const resolveEngineResponse = <T>(response: EngineResponse<T>) => {
     const pendingResponse = pendingResponses.get(response.correlationId);
     if (!pendingResponse) return;
 

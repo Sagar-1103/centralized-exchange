@@ -21,9 +21,9 @@ export interface EngineRequest {
     type: EngineType;
 }
 
-export interface EngineResponse {
+export interface EngineResponse<T> {
     correlationId: string;
-    data?: unknown;
+    data?: T;
     error?: string;
     ok: boolean;
 }
@@ -47,7 +47,7 @@ export const sendToEngine = async(type: EngineType, payload: Payload) => {
     return pendingResponse;
 }
 
-export const listenForEngineResponses = async() => {
+export const listenForEngineResponses = async<T>() => {
     for (;;) {
         try {
             const item = await subscriber.xRead({
@@ -58,7 +58,7 @@ export const listenForEngineResponses = async() => {
                 COUNT: 1,
             });
 
-            const response = JSON.parse(item?.[0]?.messages?.[0]?.message.data) as EngineResponse;
+            const response = JSON.parse(item?.[0]?.messages?.[0]?.message.data) as EngineResponse<T>;
       
             if (!response) continue;
             resolveEngineResponse(response);

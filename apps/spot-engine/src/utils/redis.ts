@@ -14,7 +14,7 @@ export const connectRedis = async() => {
     await Promise.all([subscriber.connect(),publisher.connect()]);
 }
 
-export const sendResponse = async(responseQueue: string, response: EngineResponse) => {
+export const sendResponse = async<T>(responseQueue: string, response: EngineResponse<T>) => {
     await publisher.xAdd(responseQueue,"*",{
         data: JSON.stringify(response),
     });

@@ -40,13 +40,17 @@ const startEngine = async() => {
     }
 }
 
+function restoreState<T>(data: T) {
+
+}
+
 const main = async() => {
     await connectRedis();
     const recovery = new Recovery(env.prefix,env.accessKeyId,env.secretAccessKey,env.bucket,env.region,env.endpoint);
-    await recovery.restoreFromLatestSnapshot();
+    await recovery.restoreFromLatestSnapshot(restoreState);
     await recovery.restoreEventsFromStream();
+    await recovery.captureSnapshot({},env.totalSnapshots,env.backupIntervalMs);
     await startEngine();
-    await recovery.captureSnapshot(env.backupIntervalMs);
 }
 
 main();

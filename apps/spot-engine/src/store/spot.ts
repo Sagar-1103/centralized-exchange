@@ -10,9 +10,16 @@ export interface EngineRequest {
     type: EngineType;
 }
 
-export interface EngineResponse {
+export interface EngineResponse<T> {
     correlationId: string;
-    data?: unknown;
+    data?: T;
     error?: string;
     ok: boolean;
 }
+
+export interface Collateral {
+    available: bigint;
+    locked: bigint;
+}
+
+export const BALANCES = new Map<string,Collateral>();
